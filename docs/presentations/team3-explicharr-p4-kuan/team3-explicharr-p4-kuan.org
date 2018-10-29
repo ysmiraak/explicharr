@@ -1,0 +1,687 @@
+#+TITLE: Sentence simplification with character-level transformer
+#+AUTHOR: Kuan Yu
+#+EMAIL: kuanyu@uni-potsdam.de
+#+DATE: \today
+#+OPTIONS: title:t author:t email:t date:t toc:nil
+#+STARTUP: beamer
+#+LaTeX_CLASS: beamer
+#+LATEX_HEADER: \setbeamertemplate{footline}[frame number]
+#+LATEX_HEADER: \usepackage{xeCJK}
+#+LATEX_HEADER: \setmonofont{DejaVu Sans Mono}
+#+LATEX_HEADER: \usepackage{fancyvrb}
+#+LATEX_HEADER: \usepackage{xcolor}
+#+LATEX_HEADER: \definecolor{darkblue}{rgb}{0,0,0.5}
+#+LATEX_HEADER: \hypersetup{colorlinks=true,allcolors=darkblue}
+#+LATEX_HEADER: \usepackage{graphicx}
+#+LATEX_HEADER: \graphicspath{{../team3-explicharr-p3-kuan/}{./graph/}}
+#+LATEX_HEADER: \usepackage{caption}
+#+LATEX_HEADER: \usepackage{subcaption}
+#+LATEX_HEADER: \usepackage[sorting=ynt,style=authoryear,uniquename=false]{biblatex}
+#+LATEX_HEADER: \bibliography{../../paper/paper.bib,team3-explicharr-p4-kuan.bib}
+* explicharr
+** sentence simplification                                          :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:END:
+- as machine translation
+- at the character-level
+- using a transformer
+\vfill
+``It is located in Potsdam .'' \(\quad\longmapsto\quad\) ``It is in Potsdam .''
+\vfill
+\footnotesize https://github.com/ysmiraak/explicharr
+** sentence simplification as machine translation                   :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:END:
+*** \textcite{wubben2012sentence}                                   :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+"Sentence simplification by monolingual machine translation"
+*** \textcite{narayan2014hybrid} :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+"Hybrid simplification using deep semantics and machine translation"
+*** \textcite{xu2016optimizing} :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+"Optimizing statistical machine translation for text simplification"
+** modelling level                                                  :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:END:
+*** characters \parencite{kalchbrenner2016neural}                   :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+"Neural machine translation in linear time"
+*** subwords/wordpieces \parencite{sennrich2015neural}              :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+"Neural Machine Translation of Rare Words with Subword Units"
+*** word-character hybrid \parencite{luong2016achieving}            :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+"Achieving open vocabulary neural machine translation with hybrid word-character models"
+** simple english wikipedia                                         :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:END:
+*** \textcite{napoles2010learning}                                  :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+"Learning simple Wikipedia: A cogitation in ascertaining abecedarian language"
+*** \textcite{coster2011simple}                                     :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+"Simple English Wikipedia: a new text simplification task"
+*** \textcite{hwang2015aligning}                                    :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+"Aligning sentences from standard wikipedia to simple wikipedia"
+*** \textcite{xu2015problems}                                       :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+"Problems in current text simplification research: New data can help"
+** aligned wikipedia sentences \parencite{hwang2015aligning}        :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:END:
+*** 226,208 instances after cleaning up                             :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+- pairs with identical source and target
+- overly long sentences (length > 256)
+*** 256 characters modelled                                         :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+- over 2,000 characters in either parts
+- the top 256 make up 99.97% of the data
+*** 1% random split for validation                                  :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+** evaluation metrics                                               :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:END:
+*** loss and accuracy                                               :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+- cross-entropy loss
+- with label smoothing \parencite{szegedy2016rethinking}
+*** BLEU score                                                      :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+- not suitable for text simplification \parencite{vstajner2015deeper}
+- ~78% character pairs by positions are identical
+*** manual inspection                                               :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+** transformer                                                      :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:END:
+"Attention is all you need" \parencite{vaswani2017attention}
+*** other applications                                              :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+- constituency parsing \parencite{kitaev2018constituency}
+- language generation \parencite{liu2018generating}
+- image generation \parencite{parmar2018image}
+- speech recognition \parencite{zhou2018syllable, zhou2018multilingual}
+- speech synthesis \parencite{li2018close}
+** architecture                                                     :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:END:
+#+BEGIN_EXPORT latex
+\begin{figure}
+  \begin{subfigure}{0.5\textwidth}
+    \centering
+    \includegraphics[height=0.7\textheight]{transformer.pdf}
+  \end{subfigure}%
+  \begin{subfigure}{0.5\textwidth}
+    \centering
+    \includegraphics[height=0.7\textheight,page=1]{layer.pdf}
+  \end{subfigure}%
+\end{figure}
+#+END_EXPORT
+** attentional layer                                                :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:END:
+#+BEGIN_EXPORT latex
+\begin{figure}
+\centering
+\includegraphics[height=0.7\textheight]{attention.pdf}
+\caption*{left: original scaled dot-product attention.  right: our variant.}
+\end{figure}
+#+END_EXPORT
+* results
+** examples from the validation set                                 :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+source from the english wikipedia
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+prediction from our system
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+aligned target from the simple english wikipedia
+\end{Verbatim}
+- over 80% of the predictions are identical to the source
+** example 1                                                        :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+The enshrined kami is Isonotakeru
+ no mikoto ( 五十猛命 ? )
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+The enshrined kami is Isonotakeru
+ no mikoto (      ? )
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+This place is special to the kami
+ named Isonotakeru no mikoto ( 五十猛命 ? )
+\end{Verbatim}
+- text normalization: ignores unknown characters
+** attention alignment: copy                                        :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:END:
+#+BEGIN_EXPORT latex
+\begin{figure}
+\centering
+\includegraphics[height=0.8\textheight,page=1]{plot.pdf}
+\end{figure}
+#+END_EXPORT
+** example 2                                                        :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+Edo ( 江户 ?
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+Edo (    ? )
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+Edo ( 江户 ? )
+\end{Verbatim}
+- text normalization: fills missing brackets
+** example 3                                                        :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+Buddha-Bhagavan ) .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+Buddha-Bhagavan .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+Buddhists believe there have been many Buddhas
+ who were alone , called pacceka-buddhas .
+\end{Verbatim}
+- text normalization: removes brackets
+** example 4                                                        :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+Punch 's wife was originally called `` Joan . ''
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+Punch 's wife was originally called `` Joan '' .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+Punch 's wife was originally `` Joan '' .
+\end{Verbatim}
+- text normalization: prefers not to end sentences with quotes
+** example 5                                                        :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+Their first child , Prince George of Cambridge
+ , was born on 22 July 2013 .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+Their first child , Prince George of Cambridge
+ , was born on July 22 , 2013 .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+On July 24 , it was announced that the baby
+ would be called Prince George of Cambridge
+ , with the full given name George Alexander Louis .
+\end{Verbatim}
+- text normalization: changes date format
+** attention alignment: swap                                        :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:END:
+#+BEGIN_EXPORT latex
+\begin{figure}
+\centering
+\includegraphics[height=0.8\textheight,page=3]{plot.pdf}
+\end{figure}
+#+END_EXPORT
+** example 6                                                        :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+is a 1982 arcade-style platform
+ video game by Nintendo .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+In 1982 , the style platform
+ video game by Nintendo .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+Donkey Kong Jr. is an arcade
+ video game made by Nintendo in 1982 .
+\end{Verbatim}
+- incomplete sentences: reduces to noun phrases
+** example 7                                                        :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+reflects the influence of the sexagenary cycle
+ as a count of years .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+The influence of the sexagenary cycle
+ as a count of years .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+Ancient records show that the sexagenary cycle
+ was used to count years in the 3rd century B.C. .
+\end{Verbatim}
+- incomplete sentences: reduces to noun phrases
+** example 8                                                        :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+and Mario 's Time Machine .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+The machine is a machine .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+In the Dr. Mario games first seen in 1990
+ , Mario is a doctor .
+\end{Verbatim}
+- incomplete sentences: reduces to trivial sentences
+** example 9                                                        :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+and Airplane II : The Sequel .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+The Sequel is a sequel .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+( 1980 ) and Airplane II : The Sequel ( 1982 ) .
+\end{Verbatim}
+- incomplete sentences: reduces to trivial sentences
+** example 10                                                       :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+and it is because they do n't understand
+ what Parkour is ; ` Who is the best ? '
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+They are the best ?
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+Star Jumping Parkour does involve risks
+ and many people get injured every day .
+\end{Verbatim}
+- incomplete sentences: attempts to complete
+** example 11                                                       :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+It is officially known as Avtomat Kalashnikova
+ ( Russian : Автомат Калашникова ) .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+It is known as Avtomat Kalashnikova
+ ( Russian : : 1950 : 1998 ) .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+The letters AK stand for Avtomat Kalashnikova
+ , which is Russian for Kalashnikov 's
+ Automatic Rifle .
+\end{Verbatim}
+- incomplete sentences: attempts to complete
+** example 12                                                       :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+With one huge blow from his olive-wood club
+ , Hercules killed the watchdog .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+Hercules killed the watchdog .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+Herakles killed her .
+\end{Verbatim}
+- simplification: removes initial adverbials
+** example 13                                                       :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+For example , the speed of sound in gases
+ depends on temperature .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+The speed of sound in gases depends on temperature .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+Loudness depends on sound intensity
+ , sound frequency , and the person 's hearing .
+\end{Verbatim}
+- simplification: removes initial adverbials
+** example 14                                                       :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+In it , Goldilocks is re-imagined
+ as a girl in her 20s .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+Goldilocks is re-imagined as a girl in her 20s .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+She finally became Goldilocks sometime
+ in the early 20th century .
+\end{Verbatim}
+- removes the initial adverbial
+** example 15                                                       :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+In 2008 , she starred in the comedy film Baby Mama
+ , alongside former SNL co-star Amy Poehler .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+In 2008 , she starred in the comedy movie Baby Mama
+ , alongside former SNL co-star Amy Poehler .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+In 2008 , she starred in the comedy movie Baby Mama
+ , with Amy Poehler .
+\end{Verbatim}
+- does not always remove the initial adverbial
+** example 16                                                       :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+The spines , which may be up to 50 mm ( 2 in ) long
+ , are modified hairs , mostly made of keratin .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+The spines , which may be up to 50 mm long
+ , are modified hairs , mostly made of keratin .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+The spines , which may be up to 50 mm long
+ , are modified hairs , mostly made of keratin .
+\end{Verbatim}
+- simplification: removes technical details
+** example 17                                                       :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+Sodium iodate ( NaIO3 ) is
+ the sodium salt of iodic acid .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+Sodium iodate is the sodium salt of iodic acid .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+Sodium iodate is a chemical compound .
+\end{Verbatim}
+- simplification: removes technical details
+** attention alignment: skip                                        :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:END:
+#+BEGIN_EXPORT latex
+\begin{figure}
+\centering
+\includegraphics[height=0.8\textheight,page=2]{plot.pdf}
+\end{figure}
+#+END_EXPORT
+** example 18                                                       :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+The palate / ˈpælɨt / is the roof of the mouth
+ in humans and other mammals .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+The palate is the roof of the mouth
+ in humans and other mammals .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+The palate is the roof of the mouth
+ in humans and other mammals .
+\end{Verbatim}
+- simplification: removes technical details
+** example 19                                                       :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+It is located in the Market Square
+ , Aylesbury , Buckinghamshire .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+It is in the Market Square
+ , Aylesbury , Buckinghamshire .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+The King 's Head is a National Trust property
+ in Aylesbury , Buckinghamshire , England , UK .
+\end{Verbatim}
+- simplification: removes words with little information
+** example 20                                                       :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+Home Alone received mixed reviews from film critics .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+Home Alone received mixed reviews from critics .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+Home Alone 3 ( 1997 ) and Home Alone 5
+ : The Holiday Heist ( 2012 ) have completely
+ different characters and actors .
+\end{Verbatim}
+- simplification: removes words with little information
+** example 21                                                       :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+However , low frequency also causes noticeable
+ flicker in arc lamps and incandescent light bulbs .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+The low frequency also causes noticeable
+ flicker in arc lamps and incandescent light bulbs .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+This happens so fast that a light bulb
+ does not stop glowing .
+\end{Verbatim}
+- may also add words
+** example 22                                                       :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+In the film 's story the location
+ was named as Footscray station .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+In the movie 's story the location
+ was named as Footscray station .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+In the movie it was called Footscray station .
+\end{Verbatim}
+- simplification: substitutes words
+** example 23                                                       :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+For example , 2 + 3 = 3 + 2 = 5
+ and 2 · 3 = 3 · 2 = 6 , but 23 = 8
+ , whereas 32 = 9 .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+For example , 2 + 3 = 3 = 3 = 3 = 3 = 3 = 3 = 3
+ , whereas 32 = 9 .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+Then people write powers using the ^ sign
+ : 2 ^ 3 means .
+\end{Verbatim}
+- gets confused by math
+** attention alignment: confused                                    :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:END:
+#+BEGIN_EXPORT latex
+\begin{figure}
+\centering
+\includegraphics[height=0.8\textheight,page=4]{plot.pdf}
+\end{figure}
+#+END_EXPORT
+** example 24                                                       :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile
+:END:
+\begin{Verbatim}[fontsize=\small,formatcom=\color{red}]
+1 and − 1 divide ( are divisors of ) every integer .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{violet}]
+In the 19th century , the state of the state
+ of the state of the state of the state
+ of the state of the state .
+\end{Verbatim}
+\begin{Verbatim}[fontsize=\small,formatcom=\color{blue}]
+For example , if the last digit is even
+ ( 0 , 2 , 4 , 6 or 8 ) , then 2 is a divisor .
+\end{Verbatim}
+- gets really confused by math
+** attention alignment: really confused                             :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:END:
+#+BEGIN_EXPORT latex
+\begin{figure}
+\centering
+\includegraphics[height=0.8\textheight,page=5]{plot.pdf}
+\end{figure}
+#+END_EXPORT
+* conclusion
+** our model learned                                                :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:END:
+- the common forms of english sentences
+- the general differences between the two wikipedias
+- limited abilities to simplify constituents, often by deletion
+- no ability for syntactic transformations
+- no understanding for semantic structures
+** remedies                                                         :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:END:
+*** still as supervised machine translation                         :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+- better datasets are needed
+- with suitable examples of simplification
+- and interesting linguistic properties
+*** still with wikipedia datasets                                   :B_block:
+:PROPERTIES:
+:BEAMER_env: block
+:END:
+- aligned sentences are not enough
+- unsupervised machine translation \parencite{lample2017unsupervised}
+* references                                                       :B_frame:
+:PROPERTIES:
+:BEAMER_env: frame
+:BEAMER_OPT: fragile,allowframebreaks,label=
+:END:
+\printbibliography
